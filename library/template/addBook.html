@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <Link rel="stylesheet" href="{{ url_for('static', filename='addBook.css') }}" >
+    <title>Document</title>
+</head>
+<body>
+    <div class="header">
+        <img src="../static/images/adminicon.jpg" alt="Logo">
+        <a href="{{ url_for('Admin_page') }}">Home</a> 
+    </div>
+    <form method="POST" action="{{ url_for('update_book', id=book.id) if book else url_for('Add_book_page') }}" enctype="multipart/form-data">
+        <div class="container">
+            <!-- Display existing image if updating -->
+            {% if book and book.image_path %}
+            <div class="picture" id="picture">
+                <img src="{{ url_for('static', filename='uploads/' + book.image_path) }}" alt="Current Book Cover" style="max-width: 200px;">
+            </div>
+            {% else %}
+            <div class="picture" id="picture"></div>
+            {% endif %}
+            
+            <div class="info">
+                <h2>Book Information</h2>
+                
+                <!-- Title -->
+                <label for="title" class="bookinfo">Title:</label>
+                <input type="text" name="title" class="bookinput" id="title" 
+                       value="{{ book.title if book else '' }}" placeholder="Enter book title"><br>
+    
+                <!-- Type -->
+                <label for="type" class="bookinfo">Type:</label>
+                <input type="text" name="type" class="bookinput" id="type" 
+                       value="{{ book.type if book else '' }}" placeholder="Enter book type"><br>
+    
+                <!-- Author -->
+                <label for="author" class="bookinfo">Author:</label>
+                <input type="text" name="author" class="bookinput" id="author" 
+                       value="{{ book.author if book else '' }}" placeholder="Enter author's name"><br>
+    
+                <!-- Description -->
+                <label for="description" class="bookinfo">Description:</label>
+                <textarea class="bookinput" name="description" id="description" 
+                          placeholder="Enter book description">{{ book.description if book else '' }}</textarea><br>
+    
+
+                <label class="bookinfo">Book provided to:</label>
+                <div class="radio-group">
+                    <input type="radio" name="providedTo" id="teacher" value="Teacher" >
+                    <label for="teacher">Teacher</label>
+                    
+                    <input type="radio" name="providedTo" id="students" value="Students" 
+                           {% if book and book.providedTo == 'Students' %}checked{% endif %}>
+                    <label for="students">Students</label>
+                    
+                    <input type="radio" name="providedTo" id="both" value="Both" 
+                           {% if book and book.providedTo == 'Both' %}checked{% endif %}>
+                    <label for="both">Both</label>
+                </div>
+    
+        
+                <label for="image" class="bookinfo">Upload Picture:</label>
+                <input type="file" name="image" class="bookinput" id="image" accept="image/*"><br>
+    
+              
+                <button class="add" name="Submit" type="submit" id="addbtn">
+                    {{ 'Update' if book else 'Add' }}
+                </button>
+            </div>
+        </div>
+    </form>
+<!-- <script>
+    const urlParams = new URLSearchParams(window.location.search);
+        const bookId = urlParams.get('id');
+
+        if (bookId) {
+            const books = JSON.parse(localStorage.getItem('books')) || [];
+            const book = books[bookId];
+            
+            if (book) {
+                document.getElementById('title').value = book.title;
+                document.getElementById('author').value = book.author;
+                document.getElementById('type').value = book.type;
+                document.getElementById('description').value = book.description;
+                document.getElementById('picture').style.backgroundImage = 'url(' + book.image + ')';
+                
+                document.getElementById('addbtn').innerText='Update';
+            }
+            else {
+                console.error('No books found in local storage');
+              }
+        }
+
+        document.getElementById('addbtn').addEventListener('click', function(event) {
+            event.preventDefault(); 
+
+            const title = document.getElementById('title').value;
+            const author = document.getElementById('author').value;
+            const type = document.getElementById('type').value;
+            const description = document.getElementById('description').value;
+            const dateAdded = new Date().toLocaleString();
+            const imageFile = document.getElementById('image').files[0];
+
+            const reader = new FileReader();
+            reader.onloadend = function() {
+                const book = {
+                    title,
+                    author,
+                    type,
+                    description,
+                    dateAdded,
+                    image: reader.result 
+                };
+
+                let books = JSON.parse(localStorage.getItem('books')) || [];
+
+                if (bookId) {
+                  
+                    books[bookId] = book;
+                } else {
+                    
+                    books.push(book);
+                }
+
+                localStorage.setItem('books', JSON.stringify(books)); 
+
+                alert('Book saved successfully!');
+                window.location.href = 'bookhistory.html'; 
+            };
+
+            if (imageFile) {
+                reader.readAsDataURL(imageFile); 
+            } else {
+                alert('Please select an image file.');
+            }
+        });
+        document.getElementById('image').addEventListener('change', function(event) {
+            const pictureDiv = document.getElementById('picture');
+            const file = event.target.files[0];
+        
+            if (file) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    pictureDiv.innerHTML = '';
+                    const img = document.createElement('img');
+                    img.src = e.target.result; 
+                    img.alt = 'Uploaded Image'; 
+                    pictureDiv.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        function isQuotaExceededError(err) {
+            return (
+              err instanceof DOMException &&
+              (err.code === 22 || err.code === 1014 || err.name === "QuotaExceededError" || err.name === "NS_ERROR_DOM_QUOTA_REACHED")
+            );
+          }
+        
+</script> -->
+<script>
+    document.getElementById('image').addEventListener('change', function(event) {
+        const pictureDiv = document.getElementById('picture');
+        const file = event.target.files[0];
+    
+        if (file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                pictureDiv.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = e.target.result; 
+                img.alt = 'Uploaded Image'; 
+                pictureDiv.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+</body>
+</html>
+    
