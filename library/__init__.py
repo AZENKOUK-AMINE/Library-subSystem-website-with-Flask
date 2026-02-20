@@ -6,6 +6,4 @@ app.config['SECRET_KEY']= '6586dd966221826fe6b1659c'
 db =SQLAlchemy(app)
 app.app_context().push()
 
-
-
 from library import routes

@@ -1,4 +1,6 @@
 from library import db
+from datetime import datetime
+
 class Student(db.Model):
     
     name = db.Column(db.String(length=30), nullable=False )
@@ -24,6 +26,33 @@ class Book(db.Model):
     
     def __repr__(self) :
         return f'Book {self.title}'
+
+class Reservation(db.Model):
+    id = db.Column(db.Integer(), primary_key=True)
+    book_id = db.Column(db.Integer(), db.ForeignKey('book.id'), nullable=False)
+    student_id = db.Column(db.Integer(), db.ForeignKey('student.id'), nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    end_time = db.Column(db.DateTime, nullable=False)
+    
+  
+    book = db.relationship('Book', backref='reservations')
+    student = db.relationship('Student', backref='reservations')
+    
+    def __repr__(self):
+        return f'Reservation {self.id}'
+
+class Feedback(db.Model):
+    id = db.Column(db.Integer(), primary_key=True)
+    student_id = db.Column(db.Integer(), db.ForeignKey('student.id'), nullable=False)
+    rating = db.Column(db.Integer(), nullable=False)
+    feedback_text = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    
+  
+    student = db.relationship('Student', backref='feedbacks')
+    
+    def __repr__(self):
+        return f'Feedback {self.id}'
     
     
     

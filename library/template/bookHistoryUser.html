@@ -184,9 +184,9 @@
 <body>
     <div class="header">
         <div class="headerchoices" id="projectName">MyLibrary</div>
-        <a href="feedbackuser.html"><div class="headerchoices">Feedback</div></a>
-        <a href="bookHistoryUser.html"><div class="headerchoices" id="borrowingHistory">Borrowing history</div></a>
-        <a href="main3.html"><div class="headerchoices" id="books">Books</div></a>
+        <a href="{{ url_for('feedback_page') }}"><div class="headerchoices">Feedback</div></a>
+        <a href="{{ url_for('book_history') }}"><div class="headerchoices" id="borrowingHistory">Borrowing history</div></a>
+        <a href="{{ url_for('main_page_books') }}"><div class="headerchoices" id="books">Books</div></a>
         <div class="user">
             <div class="profilIcon">
                 <img class="imagee" id="imagee">
@@ -194,8 +194,8 @@
             <div class="container">
                 <div class="username" id="welcome-message"></div>
                 <div class="options">
-                    <a href="accountSettings.html"><div class="option">Account</div></a>
-                    <a href="login.html"><div class="option">Log-out</div></a>
+                    <a href="{{ url_for('account_settings') }}"><div class="option">Account</div></a>
+                    <a href="{{ url_for('logout') }}"><div class="option">Log-out</div></a>
                 </div>
             </div>
         </div>
@@ -236,28 +236,11 @@
             if (userProfileData && userProfileData.imageUrl) {
                 imageElement.src = userProfileData.imageUrl; 
             } else {
-                imageElement.src = 'path/to/default-image.jpg';
+                imageElement.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userInfo.username || 'User') + '&background=0D8ABC&color=fff';
             }
     
-            const reservedBooks = JSON.parse(localStorage.getItem('reservedBooks')) || [];
-            const userReservedBooks = reservedBooks.filter(book => book.studentName === userInfo.username);
-            
-            const bookList = document.getElementById('bookList');
-            userReservedBooks.forEach((book) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><img src="${book.image}" alt="${book.title}" style="width: 50px; height: auto;"></td>
-                    <td>${book.title}</td>
-                    <td>${book.author}</td>
-                    <td>${book.startTime || 'N/A'}</td>
-                    <td>${book.endTime || 'N/A'}</td>
-                    <td>
-                        <button onclick="cancelReservation('${book.title}')" id="cancelReservation">Cancel</button>
-                        <button onclick="updateReservation('${book.title}')" id="updateReservation">Update</button>
-                    </td>
-                `;
-                bookList.appendChild(row);
-            });
+            // Load reservations from the server
+            loadUserReservations();
         });
     
         function cancelReservation(title) {
@@ -277,6 +260,50 @@
         window.location.href = `book_details.html?title=${encodeURIComponent(title)}&startTime=${encodeURIComponent(startTime)}&endTime=${encodeURIComponent(endTime)}`;
     }
         }
+
+    // Load user's reservations from the server
+    async function loadUserReservations() {
+        try {
+            const response = await fetch('/api/reservations');
+            const data = await response.json();
+            const allReservations = data.reservations || [];
+            
+            const bookList = document.getElementById('bookList');
+            bookList.innerHTML = ''; // Clear existing content
+            
+            if (allReservations.length > 0) {
+                allReservations.forEach((reservation) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><img src="${reservation.book_image}" alt="${reservation.book_title}" style="width: 50px; height: auto;"></td>
+                        <td>${reservation.book_title}</td>
+                        <td>${reservation.book_author}</td>
+                        <td>${reservation.start_time}</td>
+                        <td>${reservation.end_time}</td>
+                        <td>
+                            <button onclick="cancelReservation(${reservation.id})" id="cancelReservation">Cancel</button>
+                        </td>
+                    `;
+                    bookList.appendChild(row);
+                });
+            } else {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="6" style="text-align: center;">No reservations found.</td>';
+                bookList.appendChild(row);
+            }
+        } catch (error) {
+            console.error('Error loading reservations:', error);
+            const bookList = document.getElementById('bookList');
+            bookList.innerHTML = '<tr><td colspan="6" style="text-align: center; color: red;">Error loading reservations.</td></tr>';
+        }
+    }
+
+    function cancelReservation(reservationId) {
+        if (confirm('Are you sure you want to cancel this reservation?')) {
+            // TODO: Implement cancel reservation API call
+            alert('Cancel functionality will be implemented');
+        }
+    }
     </script>
 </body>
 </html>

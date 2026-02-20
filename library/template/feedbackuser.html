@@ -13,9 +13,9 @@
 <body>
     <div class="header">
         <div class="headerchoices" id="projectName">MyLibrary</div>
-        <a href="feedbackuser.html"><div class="headerchoices">Feadback</div></a>
-        <a href="bookHistoryUser.html"><div class="headerchoices" id="borrowingHistory">Borrowing history</div></a>
-        <a href="main3.html"><div  class="headerchoices" id="books">Books</div></a>
+        <a href="{{ url_for('feedback_page') }}"><div class="headerchoices">Feadback</div></a>
+        <a href="{{ url_for('book_history') }}"><div class="headerchoices" id="borrowingHistory">Borrowing history</div></a>
+        <a href="{{ url_for('main_page_books') }}"><div  class="headerchoices" id="books">Books</div></a>
         
         <div class="user">
             <div class="profilIcon">
@@ -26,9 +26,9 @@
                     
                 </div>
                 <div class="options">
-                    <a href="accountSettings.html"><div class="option">Account</div></a>
+                    <a href="{{ url_for('account_settings') }}"><div class="option">Account</div></a>
                     
-                  <a href="login.html"><div class="option">Log-out</div></a>
+                  <a href="{{ url_for('logout') }}"><div class="option">Log-out</div></a>
                 </div>
         </div>
         
@@ -43,11 +43,11 @@
                 <h3>How satisfied are you with support performance?</h3>
                 <div class="emoji">
                     <div id="emoji">
-                        <img src="poor.png" >
-                        <img src="bad.png" >
-                        <img src="okay.png" >
-                        <img src="good.png" >
-                        <img src="excellent.png" >
+                        <img src="{{ url_for('static', filename='poor.png') }}">
+                        <img src="{{ url_for('static', filename='bad.png') }}">
+                        <img src="{{ url_for('static', filename='okay.png') }}">
+                        <img src="{{ url_for('static', filename='good.png') }}">
+                        <img src="{{ url_for('static', filename='excellent.png') }}">
                     </div>
                 </div>
                 <div class="rating">
@@ -87,7 +87,7 @@
                 if (userProfileData && userProfileData.imageUrl) {
                     imageElement.src = userProfileData.imageUrl; 
                 } else {
-                    imageElement.src = 'path/to/default-image.jpg';
+                    imageElement.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userInfo.username || 'User') + '&background=0D8ABC&color=fff';
                 }
     
     });
@@ -138,36 +138,53 @@
 var feedbackInput = document.querySelector('.feedback-input');
 
 
-submitButton.addEventListener('click', function() {
+submitButton.addEventListener('click', async function() {
   
     var rating = getRating();
     var feedback = feedbackInput.value;
 
-    var loggedInUser   = JSON.parse(localStorage.getItem('loggedInUser '));
-const userProfileData = JSON.parse(localStorage.getItem(`userProfileData_${loggedInUser.userId}`));
+    if (!feedback.trim()) {
+        alert('Please enter your feedback!');
+        return;
+    }
 
+    if (rating === 0) {
+        alert('Please select a rating!');
+        return;
+    }
 
-var feedbackObject = {
-    username: loggedInUser.username,
-    userId: loggedInUser.userId,
-    rating: rating,
-    feedback: feedback,
-    image: userProfileData && userProfileData.imageUrl ? userProfileData.imageUrl : ''
-};
+    try {
+        // Submit feedback to the server
+        const response = await fetch('/api/submit-feedback', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                rating: rating,
+                feedback: feedback
+            })
+        });
 
-   
-    var existingFeedback = JSON.parse(localStorage.getItem('feedback')) || [];
-
-    
-    existingFeedback.push(feedbackObject);
-
-    
-    localStorage.setItem('feedback', JSON.stringify(existingFeedback));
-
-   
-    feedbackInput.value = '';
-
-    alert('Feedback submitted successfully!');
+        if (response.ok) {
+            // Clear the form
+            feedbackInput.value = '';
+            // Reset stars
+            var stars = document.getElementsByClassName("fas");
+            for (var i = 0; i < stars.length; i++) {
+                stars[i].style.color = "#e4e4e4";
+            }
+            emoji.style.transform = "translateX(0)";
+            
+            alert('Feedback submitted successfully!');
+        } else {
+            const error = await response.json();
+            alert('Error submitting feedback: ' + (error.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error submitting feedback. Please try again.');
+    }
 });
 
 

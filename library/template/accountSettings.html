@@ -230,13 +230,13 @@
     <div class="headerchoices" id="projectName">
      MyLibrary
     </div>
-    <a class="headerchoices" href="feedbackuser.html">
+    <a class="headerchoices" href="{{ url_for('feedback_page') }}">
      Feedback
     </a>
-    <a class="headerchoices" href="bookHistoryUser.html" id="borrowingHistory">
+    <a class="headerchoices" href="{{ url_for('book_history') }}" id="borrowingHistory">
      Borrowing history
     </a>
-    <a class="headerchoices" href="main3.html" id="books">
+    <a class="headerchoices" href="{{ url_for('main_page_books') }}" id="books">
      Books
     </a>
     <div class="user">
@@ -248,10 +248,10 @@
       
       </div>
       <div class="options">
-       <a class="option" href="accountSettings.html">
+       <a class="option" href="{{ url_for('account_settings') }}">
         Account
        </a>
-       <a class="option" href="login.html">
+       <a class="option" href="{{ url_for('logout') }}">
         Log-out
        </a>
         </div>
@@ -261,7 +261,12 @@
   </div>
   <div class="container1">
    <div class="account">
-    <img alt="Account Icon" height="40" src="List.png" width="40">
+    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+      <circle cx="9" cy="7" r="4"></circle>
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+    </svg>
     <h3>
         Account
        </h3>
@@ -351,13 +356,27 @@
    </div>
   </div>
     <script>
+        // User data from Flask session
+        const userInfo = {
+            username: "{{ user.name if user else '' }}",
+            userId: "{{ user.id if user else '' }}",
+            passport: "{{ user.passport if user else '' }}",
+            gender: "{{ user.gender if user else '' }}",
+            major: "{{ user.classs if user else '' }}",
+            type: "{{ user.type if user else '' }}"
+        };
+        
+        // Also store in localStorage for compatibility
+        if (userInfo.userId) {
+            localStorage.setItem('loggedInUser ', JSON.stringify(userInfo));
+        }
         
         document.addEventListener('DOMContentLoaded', () => {
           
             
-            const userInfo = JSON.parse(localStorage.getItem('loggedInUser '));
+            // userInfo is now defined above from Flask session
             
-            if (userInfo) {
+            if (userInfo && userInfo.userId) {
                 const welcomeMessage = document.getElementById('welcome-message');
                 welcomeMessage.textContent = userInfo.username;
                 document.getElementById('Name').textContent = userInfo.username || 'N';
@@ -375,7 +394,7 @@
             if (userProfileData && userProfileData.imageUrl) {
                 imageElement.src = userProfileData.imageUrl; 
             } else {
-                imageElement.src = 'path/to/default-image.jpg';
+                imageElement.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userInfo.username || 'User') + '&background=0D8ABC&color=fff';
             }
             const infoID = document.querySelector('.infoID');
             const container2 = document.querySelector('.container2');
@@ -408,12 +427,13 @@
             
     
         
-            const savedUser_Data = JSON.parse(localStorage.getItem('userProfileData'));
-            if (savedUser_Data) {
-             
-                if (savedUser_Data.userId === userInfo.userId && savedUser_Data.username === userInfo.username) {
-                    document.getElementById('profileImage').style.backgroundImage = `url(${savedUser_Data.imageUrl})`;
-                }
+            const savedUser_Data = JSON.parse(localStorage.getItem(`userProfileData_${userInfo.userId}`));
+            if (savedUser_Data && savedUser_Data.imageUrl) {
+                document.getElementById('profileImage').style.backgroundImage = `url(${savedUser_Data.imageUrl})`;
+            } else {
+                // Set default avatar for profile section too
+                const defaultAvatar = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userInfo.username || 'User') + '&background=0D8ABC&color=fff';
+                document.getElementById('profileImage').style.backgroundImage = `url(${defaultAvatar})`;
             }
     
         

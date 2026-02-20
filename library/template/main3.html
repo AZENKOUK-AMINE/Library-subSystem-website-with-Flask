@@ -14,7 +14,7 @@
 
     <div class="header">
         <div class="headerchoices" id="projectName">MyLibrary</div>
-        <a href="feedbackuser.html"><div class="headerchoices">Feadback</div></a>
+        <a href="{{ url_for('feedback_page') }}"><div class="headerchoices">Feadback</div></a>
         <a href="{{ url_for('book_history') }}"><div class="headerchoices" id="borrowingHistory">Borrowing history</div></a>
         <div class="headerchoices" id="books">Books</div>
         
@@ -27,9 +27,9 @@
                     
                 </div>
                 <div class="options">
-                    <a href="accountSettings.html"><div class="option">Account</div></a>
+                    <a href="{{ url_for('account_settings') }}"><div class="option">Account</div></a>
                     
-                  <a href="login.html"><div class="option">Log-out</div></a>
+                  <a href="{{ url_for('logout') }}"><div class="option">Log-out</div></a>
             </div>
         </div>
         
@@ -67,8 +67,8 @@
                 <h3>Quik Links</h3>
                 <ul class="lsit">
                     <li><a href="#">Books</a></li>
-                    <li><a href="bookHistoryUser.html">Borrowing history</a></li>
-                    <li><a href="feedbackuser.html">Feedback</a></li>
+                    <li><a href="{{ url_for('book_history') }}">Borrowing history</a></li>
+                    <li><a href="{{ url_for('feedback_page') }}">Feedback</a></li>
                     <li><a href="">Contact</a></li>
                 </ul>
             </div>

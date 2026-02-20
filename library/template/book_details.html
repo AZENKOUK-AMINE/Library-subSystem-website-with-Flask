@@ -200,38 +200,59 @@
     </div>
 
     <script>
-        function getQueryParam(param) {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(param);
-        }
-    
-        const bookTitle = getQueryParam('title');
-        const startTime = getQueryParam('startTime');
-        const endTime = getQueryParam('endTime');
-    
-       
-        function fetchBooksFromLocalStorage() {
-            return JSON.parse(localStorage.getItem('books')) || [];
-        }
-    
-    
-        const books = fetchBooksFromLocalStorage();
-        const book = books.find(b => b.title.toLowerCase() === decodeURIComponent(bookTitle).toLowerCase());
-    
-        if (book) {
+        // Set minimum date/time to current date and time
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const currentDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+        
+        document.getElementById('start-time').setAttribute('min', currentDateTime);
+        document.getElementById('end-time').setAttribute('min', currentDateTime);
+        
+        // Update end-time min when start-time changes
+        document.getElementById('start-time').addEventListener('change', function() {
+            const startValue = this.value;
+            if (startValue) {
+                document.getElementById('end-time').setAttribute('min', startValue);
+            }
+        });
+        
+        // Book data from Flask backend
+        const book = {
+            id: {{ book.id if book else 'null' }},
+            title: "{{ book.title if book else '' }}",
+            author: "{{ book.author if book else '' }}",
+            description: "{{ book.description if book else '' }}",
+            image: "{{ ('/static/uploads/' + book.image_path) if book and book.image_path else '' }}"
+        };
+        
+        // Display book details
+        if (book.id) {
             document.getElementById('book-title').textContent = `Title: ${book.title}`;
             document.getElementById('book-author').textContent = `Author: ${book.author}`;
             document.getElementById('book-description').textContent = `Description: ${book.description}`;
             document.getElementById('book-image').src = book.image;
             document.getElementById('book-image').alt = book.title;
-            if (startTime) {
-                document.getElementById('start-time').value = decodeURIComponent(startTime);
-            }
-            if (endTime) {
-                document.getElementById('end-time').value = decodeURIComponent(endTime);
-            }
         } else {
-            document.querySelector('.book_details').innerHTML = '<p class="not-found">Book not found.</p>';
+            document.querySelector('.book-details').innerHTML = '<p class="not-found">Book not found.</p>';
+        }
+    
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+    
+        const startTime = getQueryParam('startTime');
+        const endTime = getQueryParam('endTime');
+    
+        if (startTime) {
+            document.getElementById('start-time').value = decodeURIComponent(startTime);
+        }
+        if (endTime) {
+            document.getElementById('end-time').value = decodeURIComponent(endTime);
         }
     
         document.getElementById('reserve-button').addEventListener('click', function() {
@@ -239,31 +260,38 @@
             document.getElementById('reserve-button').style.display = 'none';
         });
     
-        document.getElementById('confirm-reservation').addEventListener('click', function() {
+        document.getElementById('confirm-reservation').addEventListener('click', async function() {
             const startTime = document.getElementById('start-time').value;
             const endTime = document.getElementById('end-time').value;
     
             if (startTime && endTime) {
-                const loggedInUser  = JSON.parse(localStorage.getItem('loggedInUser '));
-                const book = {
-                    title: document.getElementById('book-title').textContent.replace('Title: ', ''),
-                    author: document.getElementById('book-author').textContent.replace('Author: ', ''),
-                    description: document.getElementById('book-description').textContent.replace('Description: ', ''),
-                    image: document.getElementById('book-image').src,
-                    startTime: startTime,
-                    endTime: endTime,
-                    studentName: loggedInUser.username  ? loggedInUser.username : 'Unknown',
-                    studentId: loggedInUser.userId  ? loggedInUser.userId : 'Unknown',
-                };
+                try {
+                    // Submit reservation to the server
+                    const response = await fetch('/api/reserve-book', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            book_id: book.id,
+                            start_time: startTime,
+                            end_time: endTime
+                        })
+                    });
     
-                let reservedBooks = JSON.parse(localStorage.getItem('reservedBooks')) || []; 
-                reservedBooks.push(book);
-                localStorage.setItem('reservedBooks', JSON.stringify(reservedBooks)); 
-    
-                document.getElementById('successModal').style.display = 'block';
-                setTimeout(() => {
-                    window.location.href = 'main3.html'; 
-                }, 3000); 
+                    if (response.ok) {
+                        document.getElementById('successModal').style.display = 'block';
+                        setTimeout(() => {
+                            window.location.href = '/books'; 
+                        }, 3000);
+                    } else {
+                        const error = await response.json();
+                        alert('Error reserving book: ' + (error.error || 'Unknown error'));
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error reserving book. Please try again.');
+                }
             } else {
                 alert('Please enter both start and end times.');
             }
@@ -280,7 +308,7 @@
             }
         }
         document.getElementById('cancel-reservation').addEventListener('click', function() {
-            window.location.href = 'main3.html';
+            window.location.href = '/books';
         })
     </script>
 </body>

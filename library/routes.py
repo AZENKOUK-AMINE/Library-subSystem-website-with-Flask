@@ -1,6 +1,6 @@
 from library import app
-from flask import render_template,request,redirect,url_for
-from library.models import Student,Book
+from flask import render_template,request,redirect,url_for,session,jsonify
+from library.models import Student,Book,Reservation,Feedback
 from library.forms import RegisterForm
 from library import db
 import os
@@ -12,11 +12,47 @@ from datetime import datetime
 
 @app.route('/books')
 def main_page_books():
-    return render_template('main3.html')
+    books = Book.query.all()
+    return render_template('main3.html', books=books)
 
 @app.route('/borrowing-history')
 def book_history():
     return render_template('bookHistoryUser.html')
+
+@app.route('/feedback')
+def feedback_page():
+    return render_template('feedbackuser.html')
+
+@app.route('/account')
+def account_settings():
+    
+    user_data = {
+        'id': session.get('user_id'),
+        'name': session.get('user_name'),
+        'type': session.get('user_type'),
+        'gender': session.get('user_gender'),
+        'passport': session.get('user_passport'),
+        'classs': session.get('user_class')
+    }
+    return render_template('accountSettings.html', user=user_data)
+
+@app.route('/api/books')
+def get_books_api():
+    books = Book.query.all()
+    books_list = [{
+        'id': book.id,
+        'title': book.title,
+        'author': book.author,
+        'type': book.type,
+        'description': book.description,
+        'image': f'/static/uploads/{book.image_path}' if book.image_path else ''
+    } for book in books]
+    return {'books': books_list}
+
+@app.route('/book/<int:book_id>')
+def book_details(book_id):
+    book = Book.query.get_or_404(book_id)
+    return render_template('book_details.html', book=book)
 
 @app.route('/User_Data')
 def user_data():
@@ -42,29 +78,29 @@ def books_history_page():
 @app.route('/add book', methods=['GET', 'POST'])
 def Add_book_page():
     if request.method == 'POST':
-        image_path = None  # Initialize as None
+        image_path = None  
         
         if 'image' in request.files:
             image = request.files['image']
             if image.filename != '':
-                # Ensure the uploads directory exists
+              
                 upload_dir = os.path.join('library','static', 'uploads')
                 os.makedirs(upload_dir, exist_ok=True)
                 
-                # Generate secure filename and save
+              
                 filename = secure_filename(image.filename)
                 save_path = os.path.join(upload_dir, filename)
                 image.save(save_path)
                 
-                # Store ONLY the filename (not full path) in database
-                image_path = filename  # Changed from os.path.join('uploads', filename)
+               
+                image_path = filename  
         
         new_book = Book(
             title=request.form.get('title'),
             author=request.form.get('author'),
             type=request.form.get('type'),
             description=request.form.get('description'),
-            image_path=image_path  # Now storing just the filename
+            image_path=image_path  
         )
         db.session.add(new_book)
         db.session.commit()
@@ -102,7 +138,7 @@ def register():
 def update(id):
     students = Student.query.filter_by(id=id).first()
     if request.method == 'POST':
-        # Update student data from form submission
+       
         students.name = request.form.get('Name')
         students.id=request.form.get('ID')
         students.passport = request.form.get('PassportID')
@@ -133,20 +169,20 @@ def update_book(id):
         book.type = request.form.get('type')
         book.description = request.form.get('description')
         
-        # Handle image update if needed
+      
         if 'image' in request.files:
             image = request.files['image']
             if image.filename != '':
-                # Ensure the uploads directory exists
+              
                 upload_dir = os.path.join('library', 'static', 'uploads')
                 os.makedirs(upload_dir, exist_ok=True)
                 
-                # Generate secure filename and save
+                
                 filename = secure_filename(image.filename)
                 save_path = os.path.join(upload_dir, filename)
                 image.save(save_path)
                 
-                # Update the book's image path
+            
                 book.image_path = filename
         
         db.session.commit()
@@ -157,7 +193,7 @@ def update_book(id):
 def delete_book(id):
     book = Book.query.get_or_404(id)
     
-    # Optional: Delete the associated image file
+
     if book.image_path:
         try:
             os.remove(os.path.join('static', 'uploads', book.image_path))
@@ -167,3 +203,130 @@ def delete_book(id):
     db.session.delete(book)
     db.session.commit()
     return redirect(url_for('books_history_page'))
+
+@app.route('/')
+def home():
+    return redirect(url_for('login'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        student_id = request.form.get('id')
+        password = request.form.get('password')
+        
+       
+        student = Student.query.filter_by(id=student_id).first()
+        
+        if student and student.password == password:
+      
+            session['user_id'] = student.id
+            session['user_name'] = student.name
+            session['user_type'] = student.type
+            session['user_gender'] = student.gender
+            session['user_passport'] = student.passport
+            session['user_class'] = student.classs
+            
+           
+            if student.type == 'Admin':
+                return redirect(url_for('Admin_page'))
+            else:
+                return redirect(url_for('main_page_books'))
+        else:
+           
+            return render_template('login.html', error='Invalid ID or password')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+
+@app.route('/admin/reservations')
+def admin_reservations():
+    return render_template('adminStudentsHistoryBooks.html')
+
+
+@app.route('/api/reservations')
+def get_reservations():
+    reservations = Reservation.query.all()
+    reservations_list = [{
+        'id': res.id,
+        'book_title': res.book.title,
+        'book_author': res.book.author,
+        'book_image': f'/static/uploads/{res.book.image_path}' if res.book.image_path else '',
+        'student_name': res.student.name,
+        'student_id': res.student.id,
+        'start_time': res.start_time.strftime('%Y-%m-%d %H:%M:%S'),
+        'end_time': res.end_time.strftime('%Y-%m-%d %H:%M:%S')
+    } for res in reservations]
+    return jsonify({'reservations': reservations_list})
+
+
+@app.route('/admin/feedbacks')
+def admin_feedbacks():
+    return render_template('submittedFeedBacks.html')
+
+@app.route('/api/feedbacks')
+def get_feedbacks():
+    feedbacks = Feedback.query.all()
+    feedbacks_list = [{
+        'id': fb.id,
+        'username': fb.student.name,
+        'userId': fb.student.id,
+        'rating': fb.rating,
+        'feedback': fb.feedback_text,
+        'image': f'https://ui-avatars.com/api/?name={fb.student.name.replace(" ", "+")}&background={"4A90E2" if fb.student.gender == "Male" else "E91E63"}&color=fff&size=200',
+        'created_at': fb.created_at.strftime('%Y-%m-%d %H:%M:%S')
+    } for fb in feedbacks]
+    return jsonify({'feedbacks': feedbacks_list})
+
+
+@app.route('/api/submit-feedback', methods=['POST'])
+def submit_feedback():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    data = request.get_json()
+    new_feedback = Feedback(
+        student_id=session['user_id'],
+        rating=data.get('rating'),
+        feedback_text=data.get('feedback')
+    )
+    db.session.add(new_feedback)
+    db.session.commit()
+    return jsonify({'message': 'Feedback submitted successfully'}), 201
+
+
+@app.route('/api/reserve-book', methods=['POST'])
+def reserve_book():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    data = request.get_json()
+    
+
+    start_time_str = data.get('start_time')
+    end_time_str = data.get('end_time')
+    
+    
+    try:
+        start_time = datetime.strptime(start_time_str, '%Y-%m-%d %H:%M:%S')
+    except ValueError:
+        start_time = datetime.strptime(start_time_str, '%Y-%m-%dT%H:%M')
+    
+    try:
+        end_time = datetime.strptime(end_time_str, '%Y-%m-%d %H:%M:%S')
+    except ValueError:
+        end_time = datetime.strptime(end_time_str, '%Y-%m-%dT%H:%M')
+    
+    new_reservation = Reservation(
+        book_id=data.get('book_id'),
+        student_id=session['user_id'],
+        start_time=start_time,
+        end_time=end_time
+    )
+    db.session.add(new_reservation)
+    db.session.commit()
+    return jsonify({'message': 'Book reserved successfully'}), 201

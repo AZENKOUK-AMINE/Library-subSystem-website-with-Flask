@@ -55,8 +55,8 @@
 </head>
 <body class="bg-gray-100 text-gray-800">
     <div class="header">
-        <img src="adminicon.jpg" alt="Logo">
-        <a href="adminmain.html">Home</a> 
+        <img src="{{ url_for('static', filename='images/adminicon.jpg') }}" alt="Logo">
+        <a href="{{ url_for('Admin_page') }}">Home</a> 
     </div>
     <div class="search-container">
         <input type="text" id="searchInput" class="search-bar" placeholder="Search..." onkeyup="filterTable()">
@@ -84,30 +84,39 @@
     </div>
 
     <script>
-        function loadReservedBooks() {
-            const reservedBooks = JSON.parse(localStorage.getItem('reservedBooks')) || [];
+        async function loadReservedBooks() {
             const tableBody = document.querySelector('#reservedBooksTableBody');
+            
+            try {
+                // Fetch reservations from the server
+                const response = await fetch('/api/reservations');
+                const data = await response.json();
+                const reservedBooks = data.reservations || [];
         
-            const loggedInUser = JSON.parse(sessionStorage.getItem('loggedInUser '));
-        
-            if (reservedBooks.length > 0) {
-                reservedBooks.forEach(book => {
+                if (reservedBooks.length > 0) {
+                    reservedBooks.forEach(book => {
+                        const row = document.createElement('tr');
+                        row.classList.add('border-b');
+                        row.innerHTML = `
+                            <td class="py-3 px-4"><img src="${book.book_image}" alt="Cover image of the book titled ${book.book_title}" class="w-12 h-16 object-cover"></td>
+                            <td class="py-3 px-4">${book.book_title}</td>
+                            <td class="py-3 px-4">${book.book_author}</td>
+                            <td class="py-3 px-4">${book.start_time}</td>
+                            <td class="py-3 px-4">${book.end_time}</td>
+                            <td class="py-3 px-4">${book.student_name}</td>
+                            <td class="py-3 px-4">${book.student_id}</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                } else {
                     const row = document.createElement('tr');
-                    row.classList.add('border-b');
-                    row.innerHTML = `
-                        <td class="py-3 px-4"><img src="${book.image}" alt="Cover image of the book titled ${book.title}" class="w-12 h-16 object-cover"></td>
-                        <td class="py-3 px-4">${book.title}</td>
-                        <td class="py-3 px-4">${book.author}</td>
-                        <td class="py-3 px-4">${book.startTime}</td>
-                        <td class="py-3 px-4">${book.endTime}</td>
-                        <td class="py-3 px-4">${book.studentName ? book.studentName : 'Unknown'}</td>
-                        <td class="py-3 px-4">${book.studentId ? book.studentId : 'Unknown'}</td>
-                    `;
+                    row.innerHTML = `<td colspan="7" class="py-3 px-4 text-center">No reserved books found.</td>`;
                     tableBody.appendChild(row);
-                });
-            } else {
+                }
+            } catch (error) {
+                console.error('Error loading reservations:', error);
                 const row = document.createElement('tr');
-                row.innerHTML = `<td colspan="7" class="py-3 px-4 text-center">No reserved books found.</td>`;
+                row.innerHTML = `<td colspan="7" class="py-3 px-4 text-center text-red-600">Error loading reservations.</td>`;
                 tableBody.appendChild(row);
             }
         }
